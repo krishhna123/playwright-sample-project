@@ -33,7 +33,7 @@ test("Test searchable dynaminc dropdown", async ({ page }) => {
   await page.close();
 });
 
-test.only("test non searchable dynamic dropdown", async ({ page }) => {
+test("test non searchable dynamic dropdown", async ({ page }) => {
   await page.goto("https://demo.automationtesting.in/Register.html");
   await page.locator("span[role='combobox']").click();
   await page.pause();

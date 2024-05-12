@@ -55,7 +55,7 @@ test("page url and title", async ({ page }) => {
   await page.close();
 });
 
-test.only("page screenshot", async ({ page }) => {
+test("page screenshot", async ({ page }) => {
   await page.goto("https://opensource-demo.orangehrmlive.com/");
   await expect(page).toHaveScreenshot();
   await page.close();
