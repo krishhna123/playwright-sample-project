@@ -15,10 +15,10 @@ test("profile page @smoke @sanity", async ({}) => {
   console.log("profile page");
 });
 
-test("settings page @saniy", async ({}) => {
+test("settings page", { tag: "@saniy" }, async ({}) => {
   console.log("settings page");
 });
 
-test("checkout page @regression", async ({}) => {
+test("checkout page", { tag: "@regression" }, async ({}) => {
   console.log("checkout page");
 });
