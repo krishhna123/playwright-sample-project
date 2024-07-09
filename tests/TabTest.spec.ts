@@ -14,7 +14,7 @@ test("single tab test", async ({ page }) => {
   await newTab.close();
 });
 
-test.only("multiple tabs test", async ({ page }) => {
+test("multiple tabs test", async ({ page }) => {
   await page.goto("https://demo.automationtesting.in/Windows.html");
 
   await page.locator('.analystic[href="#Multiple"]').click();

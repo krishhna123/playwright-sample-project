@@ -23,7 +23,7 @@ test("File upload and download test", async ({ page }) => {
   await download[0].saveAs(`./downloads/${customName}.pdf`);
 });
 
-test.only("File upload test", async ({ page }) => {
+test("File upload test", async ({ page }) => {
   await page.goto("https://demo.automationtesting.in/FileUpload.html");
 
   const uploadFile = await Promise.all([
