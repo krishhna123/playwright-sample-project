@@ -49,7 +49,14 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests
-        run: npx playwright test
+        run: |
+          BASELINES=$(find tests -path '*-snapshots/*' \( -name '*.png' -o -name '*.webp' \) -type f 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$BASELINES" -eq 0 ]; then
+            echo "No baseline screenshots found. Generating new baselines..."
+            npx playwright test --update-snapshots
+          else
+            npx playwright test
+          fi
         env:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
