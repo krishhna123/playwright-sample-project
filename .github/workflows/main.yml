@@ -83,6 +83,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           add-paths: tests/**/*-snapshots/**
           commit-message: "test: update visual baselines"
           title: "test: visual baselines updated"
