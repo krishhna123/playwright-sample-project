@@ -15,8 +15,6 @@ on:
       - "playwright.config.*"
       - "package.json"
       - "package-lock.json"
-    paths-ignore:
-      - "tests/advance-functionalities/visual-regression/**"
   pull_request:
     branches: [main]
     paths:
@@ -25,8 +23,6 @@ on:
       - "playwright.config.*"
       - "package.json"
       - "package-lock.json"
-    paths-ignore:
-      - "tests/advance-functionalities/visual-regression/**"
 
 jobs:
   test:
