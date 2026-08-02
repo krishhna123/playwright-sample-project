@@ -31,6 +31,7 @@ on:
       - "package-lock.json"
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   test:
@@ -40,39 +41,57 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright tests
+          node-version: lts/*
+      - name: Setup
         run: |
-          BASELINES=$(find tests -path '*-snapshots/*' \( -name '*.png' -o -name '*.webp' \) -type f 2>/dev/null | wc -l | tr -d ' ')
-          if [ "$BASELINES" -eq 0 ]; then
-            echo "No baseline screenshots found. Generating new baselines..."
-            npx playwright test --update-snapshots
+          npm ci
+          npx playwright install --with-deps
+      - name: Check for existing baselines
+        id: baselines
+        run: |
+          if find tests -path '*-snapshots/*' \( -name '*.png' -o -name '*.webp' \) -type f 2>/dev/null | grep -q .; then
+            echo "exist=true" >> $GITHUB_OUTPUT
           else
-            npx playwright test
+            echo "exist=false" >> $GITHUB_OUTPUT
           fi
-        env:
-          USERNAME: ${{ secrets.USERNAME }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-      - name: Commit and push new baseline screenshots
-        if: success() || failure()
+
+      # --- First run: no baselines exist ---
+      # "changed" mode from config creates baselines, tests pass green
+      - name: Generate initial baselines
+        if: steps.baselines.outputs.exist == 'false'
+        run: npx playwright test
+
+      - name: Commit initial baselines
+        if: steps.baselines.outputs.exist == 'false'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add tests/**/*-snapshots/
-          if git diff --cached --quiet; then
-            echo "No new snapshots to commit"
-          else
-            git commit -m "test: update visual baselines [skip ci]"
-            git push origin HEAD:${{ github.head_ref || github.ref_name }}
-          fi
+          git commit -m "test: add visual baselines [skip ci]" || echo "Nothing to commit"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
 
+      # --- Subsequent runs: baselines exist ---
+      # "changed" mode updates baselines if UI differs; PR created for review
+      - name: Run tests
+        if: steps.baselines.outputs.exist == 'true'
+        run: npx playwright test
+
+      - name: Create PR for updated baselines
+        if: steps.baselines.outputs.exist == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: tests/**/*-snapshots/**
+          commit-message: "test: update visual baselines"
+          title: "test: visual baselines updated"
+          branch: update-snapshots-${{ github.run_id }}
+          body: "Baseline screenshots changed. Review the visual diffs before merging."
+
+      - name: Fail if baselines changed
+        if: steps.cpr.outputs.pull-request-number
+        run: exit 1
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
