@@ -87,6 +87,7 @@ jobs:
           commit-message: "test: update visual baselines"
           title: "test: visual baselines updated"
           branch: update-snapshots-${{ github.run_id }}
+          base: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
           body: "Baseline screenshots changed. Review the visual diffs before merging."
 
       - name: Fail if baselines changed
