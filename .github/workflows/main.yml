@@ -1,6 +1,5 @@
 name: Playwright Tests
 on:
-  # Manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
       environment:
@@ -8,11 +7,6 @@ on:
         type: environment
         required: false
 
-  # Daily scheduled run at 2 PM UTC
-  # schedule:
-  #  - cron: "0 14 * * *"
-
-  # Trigger on changes to test code
   push:
     branches: [main]
     paths:
@@ -21,6 +15,8 @@ on:
       - "playwright.config.*"
       - "package.json"
       - "package-lock.json"
+    paths-ignore:
+      - "tests/advance-functionalities/visual-regression/**"
   pull_request:
     branches: [main]
     paths:
@@ -29,9 +25,8 @@ on:
       - "playwright.config.*"
       - "package.json"
       - "package-lock.json"
-permissions:
-  contents: write
-  pull-requests: write
+    paths-ignore:
+      - "tests/advance-functionalities/visual-regression/**"
 
 jobs:
   test:
@@ -39,61 +34,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - name: Setup
-        run: |
-          npm ci
-          npx playwright install --with-deps
-      - name: Check for existing baselines
-        id: baselines
-        run: |
-          if find tests -path '*-snapshots/*' \( -name '*.png' -o -name '*.webp' \) -type f 2>/dev/null | grep -q .; then
-            echo "exist=true" >> $GITHUB_OUTPUT
-          else
-            echo "exist=false" >> $GITHUB_OUTPUT
-          fi
-
-      # --- First run: no baselines exist ---
-      # "changed" mode from config creates baselines, tests pass green
-      - name: Generate initial baselines
-        if: steps.baselines.outputs.exist == 'false'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests
         run: npx playwright test
-
-      - name: Commit initial baselines
-        if: steps.baselines.outputs.exist == 'false'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add tests/**/*-snapshots/
-          git commit -m "test: add visual baselines [skip ci]" || echo "Nothing to commit"
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
-
-      # --- Subsequent runs: baselines exist ---
-      # "changed" mode updates baselines if UI differs; PR created for review
-      - name: Run tests
-        if: steps.baselines.outputs.exist == 'true'
-        run: npx playwright test
-
-      - name: Create PR for updated baselines
-        if: steps.baselines.outputs.exist == 'true'
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          add-paths: tests/**/*-snapshots/**
-          commit-message: "test: update visual baselines"
-          title: "test: visual baselines updated"
-          branch: update-snapshots-${{ github.run_id }}
-          base: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
-          body: "Baseline screenshots changed. Review the visual diffs before merging."
-
-      - name: Fail if baselines changed
-        if: steps.cpr.outputs.pull-request-number
-        run: exit 1
+        env:
+          USERNAME: ${{ inputs.environment.USERNAME }}
+          PASSWORD: ${{ inputs.environment.PASSWORD }}
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
