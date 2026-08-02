@@ -17,6 +17,7 @@ npx playwright install
 ### Advance Functionalities
 
 - [Screencast](/tests/advance-functionalities/screencast/)
+- [Visual Regression](/tests/advance-functionalities/visual-regression/)
 
 ## Running Tests
 

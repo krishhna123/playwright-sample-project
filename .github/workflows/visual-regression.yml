@@ -1,0 +1,92 @@
+name: Visual Regression Tests
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 0 1,15 * *"
+
+  push:
+    branches: [main]
+    paths:
+      - "tests/advance-functionalities/visual-regression/**"
+      - "playwright.visual.config.*"
+      - "playwright.config.*"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tests/advance-functionalities/visual-regression/**"
+      - "playwright.visual.config.*"
+      - "playwright.config.*"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Setup
+        run: |
+          npm ci
+          npx playwright install --with-deps
+      - name: Check for existing baselines
+        id: baselines
+        run: |
+          if find . -path '*/visual-regression.spec.ts-snapshots/*' \( -name '*.png' -o -name '*.webp' \) -type f 2>/dev/null | grep -q .; then
+            echo "exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "exist=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate initial baselines
+        if: steps.baselines.outputs.exist == 'false'
+        run: npx playwright test --config=playwright.visual.config.ts
+
+      - name: Commit initial baselines
+        if: steps.baselines.outputs.exist == 'false'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/advance-functionalities/visual-regression/*-snapshots/
+          git commit -m "test: add visual baselines [skip ci]" || echo "Nothing to commit"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+
+      - name: Run tests
+        if: steps.baselines.outputs.exist == 'true'
+        run: npx playwright test --config=playwright.visual.config.ts
+
+      - name: Create PR for updated baselines
+        if: steps.baselines.outputs.exist == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: tests/advance-functionalities/visual-regression/*-snapshots/**
+          commit-message: "test: update visual baselines"
+          title: "test: visual baselines updated"
+          branch: update-snapshots-${{ github.run_id }}
+          base: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+          body: "Baseline screenshots changed. Review the visual diffs before merging."
+
+      - name: Fail if baselines changed
+        if: steps.cpr.outputs.pull-request-number
+        run: exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
