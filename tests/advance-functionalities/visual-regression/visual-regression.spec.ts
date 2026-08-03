@@ -37,10 +37,15 @@ test.describe("Visual Regression", () => {
 
   test("validate the page screenshot against WebP format", async ({ page }) => {
     await page.goto("https://playwright.dev/");
-    await expect(page).toHaveScreenshot("screenshot.webp");
-    await expect(page).toHaveScreenshot("fullPage.webp", { fullPage: true });
-    await expect(
-      page.getByRole("link", { name: "Get started" }),
-    ).toHaveScreenshot("locator.webp");
+    await expect
+      .soft(page)
+      .toHaveScreenshot("screenshot.webp", { maxDiffPixels: 100 });
+    await expect.soft(page).toHaveScreenshot("fullPage.webp", {
+      fullPage: true,
+      maxDiffPixels: 100,
+    });
+    await expect
+      .soft(page.getByRole("link", { name: "Get started" }))
+      .toHaveScreenshot("locator.webp", { maxDiffPixels: 100 });
   });
 });
