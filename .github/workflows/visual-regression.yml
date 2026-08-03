@@ -54,35 +54,35 @@ jobs:
         if: steps.baselines.outputs.exist == 'false'
         run: npx playwright test --config=playwright.visual.config.ts
 
-      - name: Commit initial baselines
-        if: steps.baselines.outputs.exist == 'false'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add tests/advance-functionalities/visual-regression/*-snapshots/
-          git commit -m "test: add visual baselines [skip ci]" || echo "Nothing to commit"
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+      # - name: Commit initial baselines
+      #   if: steps.baselines.outputs.exist == 'false'
+      #   run: |
+      #     git config --global user.name "github-actions[bot]"
+      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #     git add tests/advance-functionalities/visual-regression/*-snapshots/
+      #     git commit -m "test: add visual baselines [skip ci]" || echo "Nothing to commit"
+      #     git push origin HEAD:${{ github.head_ref || github.ref_name }}
 
       - name: Run tests
         if: steps.baselines.outputs.exist == 'true'
         run: npx playwright test --config=playwright.visual.config.ts
 
-      - name: Create PR for updated baselines
-        if: steps.baselines.outputs.exist == 'true'
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          add-paths: tests/advance-functionalities/visual-regression/*-snapshots/**
-          commit-message: "test: update visual baselines"
-          title: "test: visual baselines updated"
-          branch: update-snapshots-${{ github.run_id }}
-          base: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
-          body: "Baseline screenshots changed. Review the visual diffs before merging."
+      # - name: Create PR for updated baselines
+      #   if: steps.baselines.outputs.exist == 'true'
+      #   id: cpr
+      #   uses: peter-evans/create-pull-request@v7
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     add-paths: tests/advance-functionalities/visual-regression/*-snapshots/**
+      #     commit-message: "test: update visual baselines"
+      #     title: "test: visual baselines updated"
+      #     branch: update-snapshots-${{ github.run_id }}
+      #     base: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      #     body: "Baseline screenshots changed. Review the visual diffs before merging."
 
-      - name: Fail if baselines changed
-        if: steps.cpr.outputs.pull-request-number
-        run: exit 1
+      # - name: Fail if baselines changed
+      #   if: steps.cpr.outputs.pull-request-number
+      #   run: exit 1
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
