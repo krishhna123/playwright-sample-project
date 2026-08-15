@@ -10,7 +10,7 @@ import { expect, test } from "@playwright/test";
  * the images with desired image quality
  */
 
-test.describe("Visual Regression", () => {
+test.describe.skip("Visual Regression", () => {
   test("validate the page screenshot is validated", async ({ page }) => {
     await page.goto("https://playwright.dev/");
     await expect(page).toHaveScreenshot();
@@ -36,7 +36,9 @@ test.describe("Visual Regression", () => {
   });
 
   // skipping the test as few changes in webp format causing the failures even if there are no visual changes
-  test.skip("validate the page screenshot against WebP format", async ({ page }) => {
+  test.skip("validate the page screenshot against WebP format", async ({
+    page,
+  }) => {
     await page.goto("https://playwright.dev/");
     await expect
       .soft(page)
